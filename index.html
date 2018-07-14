@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]> <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]> <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<title>Face Demo</title>
+	<style>
+	#root {
+		display: block;
+		position: relative;
+		border: 1px solid #DDD;
+		width: 640px;
+		height: 480px;
+		margin: 64px auto;
+	}
+	
+	#video {
+		position: absolute;
+		top: 0;
+		left: 0;
+		display: block;
+		width: 640px;
+		height: 480px;
+		float: left;
+	}
+	
+	#canvas {
+		position: absolute;
+		top: 0;
+		left: 0;
+		display: block;
+		width: 640px;
+		height: 480px;
+		float: right;
+	}
+	</style>
+</head>
+<body>
+	<div id="root">
+		<video autoplay id="video"></video>
+		<canvas id="canvas" width="640" height="480"></canvas>
+	</div>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+	<script src="underscore.js"></script>
+	<script src="ccv.js"></script>
+	<script src="face.js"></script>
+	<script>
+	$(document).ready(function() {
+		window.requestAnimFrame = (function() {
+			return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(/* function */ callback, /* DOMElement */ element) {
+				window.setTimeout(callback, 1000 / 60);
+			};
+		})();
+		
+		var video = _.first($('#video'));
+		var canvas = _.first($('#canvas'));
+		var ctx = canvas.getContext('2d');
+		var stop = 1;
+		
+		var draw = function() {
+			stop = stop + 1;
+			
+			ctx.drawImage(video, 0, 0);
+			
+			// var img = ctx.getImageData(0, 0, 640, 480);
+			// 
+			// for (i = 0; i < img.data.length; i += 4) {
+			// 	img.data[1] = 0;
+			// 	
+			// 	if (img.data[i] < 50) {
+			// 		img.data[i + 2] = 150;
+			// 	}
+			// }
+			// 
+			// ctx.putImageData(img, 0, 0);
+			
+			var comp = ccv.detect_objects({
+				canvas: (ccv.pre(canvas)),
+				cascade: cascade,
+				interval: 5,
+				min_neighbors: 1
+			});
+			
+			for (var i = 0; i < comp.length; i++) {
+				ctx.strokeStyle = "rgba(0, 255, 0, 1)";
+				ctx.strokeRect(comp[i].x, comp[i].y, comp[i].width, comp[i].height);
+			}
+			
+			// requestAnimFrame(draw);
+			setTimeout(draw, 128);
+		};
+		
+		var processVideo = function(stream) {
+			video.src = window.URL.createObjectURL(stream);
+			requestAnimFrame(draw);
+		};
+		
+		var videoError = function(error) {
+			console.log(error);
+		};
+		
+		navigator.getMedia = (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
+		navigator.getMedia({video: true}, processVideo, videoError);
+	});
+	</script>
+</body>
+</html>
